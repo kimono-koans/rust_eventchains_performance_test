@@ -17,16 +17,19 @@ pub fn dijkstra_eventchains_bare(
 
     let mut chain = EventChain::new().with_fault_tolerance(FaultToleranceMode::Strict);
 
-    chain.add_event(Box::new(InitializeStateEvent::new(source, node_count)));
-    chain.add_event(Box::new(InitializePriorityQueueEvent));
+    let init_state = InitializeStateEvent::new(source, node_count);
+    chain.add_event(&init_state);
+    let init_queue = InitializePriorityQueueEvent;
+    chain.add_event(&init_queue);
 
     // Process nodes in a loop-like fashion
     // This is a limitation of the pattern for inherently iterative algorithms
     for _ in 0..node_count {
-        chain.add_event(Box::new(ProcessNodeEvent));
+        chain.add_event(&ProcessNodeEvent);
     }
 
-    chain.add_event(Box::new(FinalizeResultEvent::new(target)));
+    let finalize = FinalizeResultEvent::new(target);
+    chain.add_event(&finalize);
 
     // Execute chain
     let result = chain.execute(&mut context);
@@ -60,20 +63,25 @@ pub fn dijkstra_eventchains_full(
 
     // Add middleware (reverse order of execution)
     let perf_middleware = PerformanceMiddleware::new();
-    chain.use_middleware(Box::new(perf_middleware));
-    chain.use_middleware(Box::new(TimingMiddleware::new(verbose)));
-    chain.use_middleware(Box::new(LoggingMiddleware::new(verbose)));
+    chain.use_middleware(&perf_middleware);
+    let timing_middleware = TimingMiddleware::new(verbose);
+    chain.use_middleware(&timing_middleware);
+    let logging_middleware = LoggingMiddleware::new(verbose);
+    chain.use_middleware(&logging_middleware);
 
-    // Add events
-    chain.add_event(Box::new(InitializeStateEvent::new(source, node_count)));
-    chain.add_event(Box::new(InitializePriorityQueueEvent));
+    let init_state = InitializeStateEvent::new(source, node_count);
+    chain.add_event(&init_state);
+    let init_queue = InitializePriorityQueueEvent;
+    chain.add_event(&init_queue);
 
-    // Process nodes
+    // Process nodes in a loop-like fashion
+    // This is a limitation of the pattern for inherently iterative algorithms
     for _ in 0..node_count {
-        chain.add_event(Box::new(ProcessNodeEvent));
+        chain.add_event(&ProcessNodeEvent);
     }
 
-    chain.add_event(Box::new(FinalizeResultEvent::new(target)));
+    let finalize = FinalizeResultEvent::new(target);
+    chain.add_event(&finalize);
 
     // Execute chain
     let result = chain.execute(&mut context);
@@ -105,13 +113,15 @@ pub fn dijkstra_eventchains_optimized(
 
     let mut chain = EventChain::new().with_fault_tolerance(FaultToleranceMode::Strict);
 
-    // Add events
-    chain.add_event(Box::new(InitializeStateEvent::new(source, node_count)));
-    chain.add_event(Box::new(InitializePriorityQueueEvent));
+    let init_state = InitializeStateEvent::new(source, node_count);
+    chain.add_event(&init_state);
+    let init_queue = InitializePriorityQueueEvent;
+    chain.add_event(&init_queue);
 
-    // Use a single "process all nodes" event
-    chain.add_event(Box::new(ProcessAllNodesEvent));
-    chain.add_event(Box::new(FinalizeResultEvent::new(target)));
+    chain.add_event(&ProcessAllNodesEvent);
+
+    let finalize = FinalizeResultEvent::new(target);
+    chain.add_event(&finalize);
 
     // Execute chain
     let result = chain.execute(&mut context);
